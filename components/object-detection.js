@@ -1,16 +1,18 @@
+
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { load as cocoSSDload } from "@tensorflow-models/coco-ssd";
 import * as tf from "@tensorflow/tfjs";
-import {renderPredictions} from "@/utils/render-predictions";
+import { renderPredictions } from "@/utils/render-predictions";
 
 let detectInterval;
 
 const ObjectDetection = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [facingMode, setFacingMode] = useState('user'); // 'user' for front camera, 'environment' for back camera
   const webcamRef = useRef(null);
-  const  canvasRef =useRef(null);
+  const canvasRef = useRef(null);
 
   const runCoco = async () => {
     setIsLoading(true);
@@ -18,11 +20,11 @@ const ObjectDetection = () => {
     setIsLoading(false);
 
     detectInterval = setInterval(() => {
-       runObjectDetection(net)
+      runObjectDetection(net)
     }, 10);
   };
 
-  async function runObjectDetection(net){
+  async function runObjectDetection(net) {
     if (
       canvasRef.current &&
       webcamRef.current !== null &&
@@ -38,9 +40,9 @@ const ObjectDetection = () => {
         0.6
       );
 
-        console.log(detectedObjects);
+      console.log(detectedObjects);
 
-     const context = canvasRef.current.getContext("2d");
+      const context = canvasRef.current.getContext("2d");
       renderPredictions(detectedObjects, context);
     }
   }
@@ -58,6 +60,10 @@ const ObjectDetection = () => {
     }
   };
 
+  const handleCameraSwitch = () => {
+    setFacingMode(prevMode => prevMode === 'user' ? 'environment' : 'user');
+  };
+
   useEffect(() => {
     runCoco();
     showmyVideo();
@@ -69,16 +75,34 @@ const ObjectDetection = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (webcamRef.current) {
+      webcamRef.current.video.srcObject = null; // Reset the video source
+    }
+  }, [facingMode]);
+
   return (
     <div className='mt-8'>
       {isLoading ? (
         <div className='gradient-text'>Loading AI Model</div>
       ) : (
-        <div className='relative flex justify-center items-center gradient p-1.5 rounded-md'>
+        <div className='relative flex flex-col items-center gradient p-1.5 rounded-md'>
           {/* webcam */}
-          <Webcam ref={webcamRef} className='rounded-md w-full lg:h-[720px]' muted />
+          <Webcam
+            ref={webcamRef}
+            className='rounded-md w-full lg:h-[720px]'
+            audio={false}
+            videoConstraints={{ facingMode }}
+          />
           {/* canvas */}
-          <canvas ref={canvasRef} className='absolute top-0 left-0 z-99999 w-full lg:h-[720px]'/>
+          <canvas ref={canvasRef} className='absolute top-0 left-0 z-99999 w-full lg:h-[720px]' />
+          {/* switch camera button */}
+          <button
+            className='mt-2 p-2 bg-blue-500 text-white rounded'
+            onClick={handleCameraSwitch}
+          >
+            Switch Camera
+          </button>
         </div>
       )}
     </div>
